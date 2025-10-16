@@ -92,7 +92,7 @@ wss.on('connection', (ws) => {
               session: {
                 modalities: ['text', 'audio'],
                 instructions: initialInstructions,
-                voice: 'nova',
+                voice: 'sage',
                 input_audio_format: 'pcm16',
                 output_audio_format: 'pcm16',
                 input_audio_transcription: {
@@ -776,7 +776,7 @@ async function sendFallbackGreeting(ws, candidateName, sessionId) {
   try {
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
-      voice: 'nova',
+      voice: 'sage',
       input: greetingText,
     });
 
@@ -817,7 +817,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
-      voice: 'nova',
+      voice: '',
       input: responseText,
     });
 
@@ -836,6 +836,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
 
 
 
