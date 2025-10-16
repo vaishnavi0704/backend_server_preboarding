@@ -673,7 +673,7 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
   
   instructions += stepInstructions[currentStep] || '';
   instructions += '\n\n📝 CONVERSATION STYLE:\n';
-  instructions += '• Be warm, friendly, and encouraging\n';
+  instructions += '• Be warm, friendly, use conversational fillers like hmm, okay , and encouraging\n';
   instructions += '• Keep responses concise (under 3 sentences) unless answering specific questions or explaining verification failures\n';
   instructions += '• 🔐 NAME MISMATCH: If a document has the wrong name, be firm but polite: "For security reasons, I cannot accept documents with a different name. Please upload a document that shows YOUR name."\n';
   instructions += '• When verification FAILS for other reasons, be empathetic but clear about the issues\n';
@@ -817,7 +817,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
-      voice: '',
+      voice: 'sage',
       input: responseText,
     });
 
@@ -836,6 +836,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
 
 
 
