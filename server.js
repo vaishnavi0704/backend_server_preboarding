@@ -118,7 +118,7 @@ wss.on('connection', (ws) => {
                   role: 'user',
                   content: [{
                     type: 'input_text',
-                    text: `Greet ${data.candidateName} warmly and ask them to upload their Identity Proof document (like a driver's license, passport, or government ID). Tell them they can also speak to you.`
+                    text: `Hello ${candidateName}, welcome to your new role — I’m your AI onboarding assistant. This week you’ll start with a Welcome & HR Orientation to learn about our company and policies, followed by a Team & Manager Introduction to meet your team and get your role overview. At the end of the week there’s a short check-in with HR and your manager to answer questions and see how you’re settling in. Now let’s complete your document verification together — I’ll guide you step-by-step. Now warmly and ask them to upload their Identity Proof document (like a driver's license, passport, or government ID). Tell them they can also speak to you.`
                   }]
                 }
               }));
@@ -497,7 +497,15 @@ wss.on('connection', (ws) => {
               promptText += `Company: ${offerInfo.companyName}. `;
             }
             
-            promptText += `Congratulate ${session.candidateName} enthusiastically and tell them their preboarding is complete. Mention they will be contacted by HR within 24 hours.`;
+            promptText += `Congratulate ${session.candidateName} calmly and tell them their preboarding is complete. Mention they will be contacted by HR within 24 hours. and tell them our initial onboarding steps are now complete.
+Today, we have:
+Given you an overview of your first week’s schedule and key meetings, and
+Collected your Identity Proof for verification.
+As next steps, please:
+Check your email and calendar for your meeting invites,
+Review any documents or links shared by HR
+If at any point you are unsure about your schedule, you can return to this assistant and ask for your first-week schedule again, or you can refer to your onboarding email.
+Thank you for your time and I wish you a great time with your wonderful team.`;
           }
 
           if (nextStep) {
@@ -836,6 +844,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
 
 
 
