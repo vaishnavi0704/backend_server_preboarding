@@ -118,7 +118,7 @@ wss.on('connection', (ws) => {
                   role: 'user',
                   content: [{
                     type: 'input_text',
-                    text: `Hello ${candidateName}, welcome to your new role — I’m your AI onboarding assistant. This week you’ll start with a Welcome & HR Orientation to learn about our company and policies, followed by a Team & Manager Introduction to meet your team and get your role overview. At the end of the week there’s a short check-in with HR and your manager to answer questions and see how you’re settling in. Now let’s complete your document verification together — I’ll guide you step-by-step. Now warmly and ask them to upload their Identity Proof document (like a driver's license, passport, or government ID). Tell them they can also speak to you.`
+                    text: `Hello, welcome to your new role — I’m your AI onboarding assistant. This week you’ll start with a Welcome & HR Orientation to learn about our company and policies, followed by a Team & Manager Introduction to meet your team and get your role overview. At the end of the week there’s a short check-in with HR and your manager to answer questions and see how you’re settling in. Now let’s complete your document verification together — I’ll guide you step-by-step. Now warmly and ask them to upload their Identity Proof document (like a driver's license, passport, or government ID). Tell them they can also speak to you.`
                   }]
                 }
               }));
@@ -844,6 +844,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
 
 
 
