@@ -1360,7 +1360,7 @@ Now that you have an overview of your first week, let us complete your document 
               promptText += `Company: ${offerInfo.companyName}. `;
             }
             
-            promptText += `Congratulate ${session.candidateName} warmly and tell them: "Our initial onboarding steps are now complete. Today, we have given you an overview of your first week's schedule and key meetings, and collected your Identity Proof for verification. As next steps, please check your email and calendar for your meeting invites and review any documents or links shared by HR. If at any point you are unsure about your schedule, you can return to this assistant and ask for your first-week schedule again, or you can refer to your onboarding email. Thank you for your time and I wish you a great time with your wonderful team."`;
+            promptText += `Congratulate ${session.candidateName} warmly and calmly and tell them: "Our initial onboarding steps are now complete. Today, we have given you an overview of your first week's schedule and key meetings, and collected your Identity Proof for verification. As next steps, please check your email and calendar for your meeting invites and review any documents or links shared by HR. If at any point you are unsure about your schedule, you can return to this assistant and ask for your first-week schedule again, or you can refer to your onboarding email. Thank you for your time and I wish you a great time with your wonderful team."`;
             promptText += `\n\n⚠️ DO NOT mention any confidence scores or percentages.`;
           }
 
@@ -1674,3 +1674,4 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
