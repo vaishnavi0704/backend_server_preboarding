@@ -403,7 +403,7 @@ To begin, please upload your Identity Proof document — such as a driver’s li
 
             // Build detailed failure message
             let failurePrompt = `IMPORTANT: The ${session.currentStep} document verification just FAILED. `;
-            // failurePrompt += `Confidence score: ${(data.verificationData.confidence * 100).toFixed(0)}%. `;
+            failurePrompt += `Confidence score: ${(data.verificationData.confidence * 100).toFixed(0)}%. `;
             
             if (data.verificationData.issues && data.verificationData.issues.length > 0) {
               failurePrompt += `\n\nIssues found:\n`;
@@ -462,7 +462,7 @@ To begin, please upload your Identity Proof document — such as a driver’s li
             nextStep = 'address';
             const identityInfo = data.verificationData.extractedData || {};
             
-            // promptText = `Excellent! The identity document was successfully verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
+            promptText = `Excellent! The identity document was successfully verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
             
             if (identityInfo.name) {
               promptText += `I confirmed the name as ${identityInfo.name}. `;
@@ -477,7 +477,7 @@ To begin, please upload your Identity Proof document — such as a driver’s li
             nextStep = 'offer';
             const addressInfo = data.verificationData.extractedData || {};
             
-            // promptText = `Great! The address proof was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
+            promptText = `Great! The address proof was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
             
             if (addressInfo.address) {
               promptText += `I confirmed the address as ${addressInfo.address}. `;
@@ -492,7 +492,7 @@ To begin, please upload your Identity Proof document — such as a driver’s li
             nextStep = 'complete';
             const offerInfo = data.verificationData.extractedData || {};
             
-            // promptText = `Perfect! All documents are verified! The offer letter was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
+            promptText = `Perfect! All documents are verified! The offer letter was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
             
             if (offerInfo.position) {
               promptText += `Position: ${offerInfo.position}. `;
@@ -611,8 +611,8 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
       if (identity.idNumber) instructions += `  • ID Number: ${identity.idNumber}\n`;
       if (identity.dateOfBirth) instructions += `  • Date of Birth: ${identity.dateOfBirth}\n`;
       if (identity.expiryDate) instructions += `  • Expiry Date: ${identity.expiryDate}\n`;
-      // if (docKnowledge.identity.confidence) {
-      //   instructions += `  • Verification Confidence: ${(docKnowledge.identity.confidence * 100).toFixed(0)}%\n`;
+      if (docKnowledge.identity.confidence) {
+        instructions += `  • Verification Confidence: ${(docKnowledge.identity.confidence * 100).toFixed(0)}%\n`;
       }
     }
     
@@ -622,8 +622,8 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
       if (address.name) instructions += `  • Name on Document: ${address.name}\n`;
       if (address.address) instructions += `  • Address: ${address.address}\n`;
       if (address.issueDate) instructions += `  • Issue Date: ${address.issueDate}\n`;
-      // if (docKnowledge.address.confidence) {
-      //   instructions += `  • Verification Confidence: ${(docKnowledge.address.confidence * 100).toFixed(0)}%\n`;
+      if (docKnowledge.address.confidence) {
+        instructions += `  • Verification Confidence: ${(docKnowledge.address.confidence * 100).toFixed(0)}%\n`;
       }
     }
     
@@ -633,8 +633,8 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
       if (offer.companyName) instructions += `  • Company: ${offer.companyName}\n`;
       if (offer.position) instructions += `  • Position: ${offer.position}\n`;
       if (offer.name) instructions += `  • Candidate Name: ${offer.name}\n`;
-      // if (docKnowledge.offer.confidence) {
-      //   instructions += `  • Verification Confidence: ${(docKnowledge.offer.confidence * 100).toFixed(0)}%\n`;
+      if (docKnowledge.offer.confidence) {
+        instructions += `  • Verification Confidence: ${(docKnowledge.offer.confidence * 100).toFixed(0)}%\n`;
       }
     }
 
@@ -652,7 +652,7 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
           
           failedAttempts.forEach((attempt, i) => {
             instructions += `  Attempt #${attempt.attemptNumber}:\n`;
-            // instructions += `    • Confidence: ${(attempt.confidence * 100).toFixed(0)}%\n`;
+            instructions += `    • Confidence: ${(attempt.confidence * 100).toFixed(0)}%\n`;
             if (attempt.issues && attempt.issues.length > 0) {
               instructions += `    • Issues: ${attempt.issues.join(', ')}\n`;
             }
@@ -764,7 +764,7 @@ function printDocumentSummary(sessionId) {
       console.log(`\n⚠️ ${docType} - ALL ATTEMPTS (${docKnowledge[key].length}):`);
       docKnowledge[key].forEach(attempt => {
         console.log(`  Attempt #${attempt.attemptNumber} [${attempt.isValid ? '✅ PASSED' : '❌ FAILED'}]:`);
-        // console.log(`    Confidence: ${(attempt.confidence * 100).toFixed(0)}%`);
+        console.log(`    Confidence: ${(attempt.confidence * 100).toFixed(0)}%`);
         if (attempt.issues) console.log(`    Issues: ${attempt.issues.join(', ')}`);
       });
     }
@@ -848,6 +848,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
 
 
 
