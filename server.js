@@ -118,7 +118,11 @@ wss.on('connection', (ws) => {
                   role: 'user',
                   content: [{
                     type: 'input_text',
-                    text: `Hello, welcome to your new role — I’m your AI onboarding assistant. This week you’ll start with a Welcome & HR Orientation to learn about our company and policies, followed by a Team & Manager Introduction to meet your team and get your role overview. At the end of the week there’s a short check-in with HR and your manager to answer questions and see how you’re settling in. Now let’s complete your document verification together — I’ll guide you step-by-step. Now warmly and ask them to upload their Identity Proof document (like a driver's license, passport, or government ID). Tell them they can also speak to you.`
+                    text: `Hello, welcome to your new role. I’m your AI onboarding assistant. This week, you will begin with a Welcome and HR Orientation, where you’ll learn about our company, policies, and basic procedures. After that, you’ll have a Team and Manager Introduction to understand your responsibilities and meet the people you will be working with. Toward the end of the week, there will be a brief check-in with HR and your manager to address any questions and ensure you are settling in comfortably.
+
+Now, let’s move to your document verification. I will guide you through each step at a steady pace.
+
+To begin, please upload your Identity Proof document — such as a driver’s license, passport, or any government-issued ID. You can either upload the file or simply speak to me if that’s easier for you.`
                   }]
                 }
               }));
@@ -399,7 +403,7 @@ wss.on('connection', (ws) => {
 
             // Build detailed failure message
             let failurePrompt = `IMPORTANT: The ${session.currentStep} document verification just FAILED. `;
-            failurePrompt += `Confidence score: ${(data.verificationData.confidence * 100).toFixed(0)}%. `;
+            // failurePrompt += `Confidence score: ${(data.verificationData.confidence * 100).toFixed(0)}%. `;
             
             if (data.verificationData.issues && data.verificationData.issues.length > 0) {
               failurePrompt += `\n\nIssues found:\n`;
@@ -458,7 +462,7 @@ wss.on('connection', (ws) => {
             nextStep = 'address';
             const identityInfo = data.verificationData.extractedData || {};
             
-            promptText = `Excellent! The identity document was successfully verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
+            // promptText = `Excellent! The identity document was successfully verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
             
             if (identityInfo.name) {
               promptText += `I confirmed the name as ${identityInfo.name}. `;
@@ -473,7 +477,7 @@ wss.on('connection', (ws) => {
             nextStep = 'offer';
             const addressInfo = data.verificationData.extractedData || {};
             
-            promptText = `Great! The address proof was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
+            // promptText = `Great! The address proof was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
             
             if (addressInfo.address) {
               promptText += `I confirmed the address as ${addressInfo.address}. `;
@@ -488,7 +492,7 @@ wss.on('connection', (ws) => {
             nextStep = 'complete';
             const offerInfo = data.verificationData.extractedData || {};
             
-            promptText = `Perfect! All documents are verified! The offer letter was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
+            // promptText = `Perfect! All documents are verified! The offer letter was verified with ${(data.verificationData.confidence * 100).toFixed(0)}% confidence. `;
             
             if (offerInfo.position) {
               promptText += `Position: ${offerInfo.position}. `;
@@ -607,8 +611,8 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
       if (identity.idNumber) instructions += `  • ID Number: ${identity.idNumber}\n`;
       if (identity.dateOfBirth) instructions += `  • Date of Birth: ${identity.dateOfBirth}\n`;
       if (identity.expiryDate) instructions += `  • Expiry Date: ${identity.expiryDate}\n`;
-      if (docKnowledge.identity.confidence) {
-        instructions += `  • Verification Confidence: ${(docKnowledge.identity.confidence * 100).toFixed(0)}%\n`;
+      // if (docKnowledge.identity.confidence) {
+      //   instructions += `  • Verification Confidence: ${(docKnowledge.identity.confidence * 100).toFixed(0)}%\n`;
       }
     }
     
@@ -618,8 +622,8 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
       if (address.name) instructions += `  • Name on Document: ${address.name}\n`;
       if (address.address) instructions += `  • Address: ${address.address}\n`;
       if (address.issueDate) instructions += `  • Issue Date: ${address.issueDate}\n`;
-      if (docKnowledge.address.confidence) {
-        instructions += `  • Verification Confidence: ${(docKnowledge.address.confidence * 100).toFixed(0)}%\n`;
+      // if (docKnowledge.address.confidence) {
+      //   instructions += `  • Verification Confidence: ${(docKnowledge.address.confidence * 100).toFixed(0)}%\n`;
       }
     }
     
@@ -629,8 +633,8 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
       if (offer.companyName) instructions += `  • Company: ${offer.companyName}\n`;
       if (offer.position) instructions += `  • Position: ${offer.position}\n`;
       if (offer.name) instructions += `  • Candidate Name: ${offer.name}\n`;
-      if (docKnowledge.offer.confidence) {
-        instructions += `  • Verification Confidence: ${(docKnowledge.offer.confidence * 100).toFixed(0)}%\n`;
+      // if (docKnowledge.offer.confidence) {
+      //   instructions += `  • Verification Confidence: ${(docKnowledge.offer.confidence * 100).toFixed(0)}%\n`;
       }
     }
 
@@ -648,7 +652,7 @@ function buildInstructions(candidateName, currentStep, docKnowledge) {
           
           failedAttempts.forEach((attempt, i) => {
             instructions += `  Attempt #${attempt.attemptNumber}:\n`;
-            instructions += `    • Confidence: ${(attempt.confidence * 100).toFixed(0)}%\n`;
+            // instructions += `    • Confidence: ${(attempt.confidence * 100).toFixed(0)}%\n`;
             if (attempt.issues && attempt.issues.length > 0) {
               instructions += `    • Issues: ${attempt.issues.join(', ')}\n`;
             }
@@ -760,7 +764,7 @@ function printDocumentSummary(sessionId) {
       console.log(`\n⚠️ ${docType} - ALL ATTEMPTS (${docKnowledge[key].length}):`);
       docKnowledge[key].forEach(attempt => {
         console.log(`  Attempt #${attempt.attemptNumber} [${attempt.isValid ? '✅ PASSED' : '❌ FAILED'}]:`);
-        console.log(`    Confidence: ${(attempt.confidence * 100).toFixed(0)}%`);
+        // console.log(`    Confidence: ${(attempt.confidence * 100).toFixed(0)}%`);
         if (attempt.issues) console.log(`    Issues: ${attempt.issues.join(', ')}`);
       });
     }
@@ -844,6 +848,7 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
 
 
 
