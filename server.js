@@ -853,12 +853,6 @@
 
 
 
-
-
-
-
-
-
 require('dotenv').config({ path: '.env.local' });
 
 const WebSocket = require('ws');
@@ -927,7 +921,7 @@ wss.on('connection', (ws) => {
             console.log('⏱️ Realtime API connection timeout - using fallback');
             useRealtimeAPI = false;
             realtimeWs.close();
-            sendFallbackGreeting(ws, data.candidateName, sessionId);
+            sendFallbackGreeting(ws, data.candidateName, sessionId, data.initialMessage);
           }, 5000);
 
           realtimeConnections.set(sessionId, realtimeWs);
@@ -962,29 +956,23 @@ wss.on('connection', (ws) => {
               }
             }));
 
-            // 🔥 NEW: Send initial message from data.initialMessage if provided
+            // 🔥 FIXED: Use the initialMessage from frontend if provided, otherwise use default
             setTimeout(() => {
               const welcomeMessage = data.initialMessage || `Hello ${data.candidateName}.
-
 Welcome to your new journey with your new role at this new place. I am your AI onboarding assistant, and I will help you get started with your first week here.
-
 In this short session, I will do three things for you:
 First, welcome you and give you a quick overview of your first week's schedule.
 Second, explain the key meetings you will attend.
 And third, guide you through your document verification.
-
 Let me begin with your upcoming schedule and meetings for the first week.
-
 On Day 1, you will have your Welcome and HR Orientation session. In this meeting, you will learn about the company, our values, and work culture, as well as understand important HR policies.
-
 Next, you will have a Team and Manager Introduction session, where you'll meet your core team and get an overview of your role, the projects you'll work on, and how your work contributes to the team.
-
 Towards the end of the week, you will have a First Week Check-in with HR and your manager. This is a short session to see how comfortable you are with the role and environment, and to clarify any questions.
-
 All these meetings will be shared with you via calendar invites and email, including links, timings, and participants.
-
 Now that you have an overview of your first week, let us complete your document verification. Please upload your identity proof when you're ready.`;
 
+              console.log('📢 Sending initial welcome message to agent');
+              
               realtimeWs.send(JSON.stringify({
                 type: 'conversation.item.create',
                 item: {
@@ -992,7 +980,7 @@ Now that you have an overview of your first week, let us complete your document 
                   role: 'user',
                   content: [{
                     type: 'input_text',
-                    text: welcomeMessage
+                    text: `Please speak the following message to ${data.candidateName} in a warm, professional, and natural conversational tone. Speak it exactly as written, with appropriate pauses and natural flow:\n\n${welcomeMessage}`
                   }]
                 }
               }));
@@ -1003,7 +991,7 @@ Now that you have an overview of your first week, let us complete your document 
                   modalities: ['text', 'audio']
                 }
               }));
-            }, 300);
+            }, 500);
           });
 
           realtimeWs.on('message', (msg) => {
@@ -1065,7 +1053,7 @@ Now that you have an overview of your first week, let us complete your document 
             console.error('❌ Realtime API error:', error.message);
             useRealtimeAPI = false;
             clearTimeout(connectionTimeout);
-            sendFallbackGreeting(ws, data.candidateName, sessionId);
+            sendFallbackGreeting(ws, data.candidateName, sessionId, data.initialMessage);
           });
 
           realtimeWs.on('close', () => {
@@ -1076,11 +1064,10 @@ Now that you have an overview of your first week, let us complete your document 
         } catch (realtimeError) {
           console.error('❌ Failed to connect to Realtime API:', realtimeError.message);
           useRealtimeAPI = false;
-          sendFallbackGreeting(ws, data.candidateName, sessionId);
+          sendFallbackGreeting(ws, data.candidateName, sessionId, data.initialMessage);
         }
 
       } else if (data.type === 'speak_message') {
-        // 🔥 NEW: Handle speak_message for "Hmmmm"
         console.log('🗣️ Speaking message:', data.message);
         
         const realtimeWs = realtimeConnections.get(sessionId || data.recordId);
@@ -1190,7 +1177,6 @@ Now that you have an overview of your first week, let us complete your document 
           console.log(JSON.stringify(data.verificationData, null, 2));
         }
 
-        // 🔥 NAME MISMATCH CHECK
         if (data.verificationData.nameMatch === false) {
           console.log('❌ NAME VERIFICATION FAILED - Name mismatch detected');
           
@@ -1247,7 +1233,6 @@ Now that you have an overview of your first week, let us complete your document 
           return;
         }
 
-        // 🔥 VERIFICATION FAILED (other reasons)
         if (!data.verificationData.isValid || data.verificationData.confidence < 0.7) {
           console.log('❌ Document verification FAILED');
           
@@ -1306,7 +1291,6 @@ Now that you have an overview of your first week, let us complete your document 
           isProcessingVerification = false;
 
         } else {
-          // ✅ VERIFICATION SUCCESS
           console.log('✅ Document verification SUCCESSFUL');
           
           if (docKnowledge) {
@@ -1601,8 +1585,19 @@ function printDocumentSummary(sessionId) {
   console.log('\n===================================================\n');
 }
 
-async function sendFallbackGreeting(ws, candidateName, sessionId) {
-  const greetingText = `Hello ${candidateName}! I'm your document verification assistant. Let's get started with your onboarding. Please upload your Identity Proof, such as a driver's license, passport, or government ID. You can also speak to me.`;
+async function sendFallbackGreeting(ws, candidateName, sessionId, initialMessage) {
+  const greetingText = initialMessage || `Hello ${data.candidateName}.
+Welcome to your new journey with your new role at this new place. I am your AI onboarding assistant, and I will help you get started with your first week here.
+In this short session, I will do three things for you:
+First, welcome you and give you a quick overview of your first week's schedule.
+Second, explain the key meetings you will attend.
+And third, guide you through your document verification.
+Let me begin with your upcoming schedule and meetings for the first week.
+On Day 1, you will have your Welcome and HR Orientation session. In this meeting, you will learn about the company, our values, and work culture, as well as understand important HR policies.
+Next, you will have a Team and Manager Introduction session, where you'll meet your core team and get an overview of your role, the projects you'll work on, and how your work contributes to the team.
+Towards the end of the week, you will have a First Week Check-in with HR and your manager. This is a short session to see how comfortable you are with the role and environment, and to clarify any questions.
+All these meetings will be shared with you via calendar invites and email, including links, timings, and participants.
+Now that you have an overview of your first week, let us complete your document verification. Please upload your identity proof when you're ready.`;
   
   console.log('🤖 Agent (fallback):', greetingText);
   logMessage(sessionId, 'agent', greetingText);
@@ -1674,4 +1669,825 @@ async function sendFallbackResponse(ws, sessionId, promptText) {
 
 console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
 console.log('💡 Waiting for connections...');
+
+
+
+
+
+// require('dotenv').config({ path: '.env.local' });
+
+// const WebSocket = require('ws');
+// const OpenAI = require('openai');
+
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const PORT = process.env.PORT || 8080;
+// const wss = new WebSocket.Server({ port: PORT });
+
+// const sessions = new Map();
+// const realtimeConnections = new Map();
+// const conversationLogs = new Map();
+// const documentKnowledge = new Map();
+
+// wss.on('connection', (ws) => {
+//   console.log('✅ Client connected');
+//   let sessionId = null;
+//   let useRealtimeAPI = true;
+//   let isProcessingVerification = false;
+
+//   ws.on('message', async (message) => {
+//     try {
+//       const data = JSON.parse(message);
+//       console.log('📨 Received message type:', data.type);
+
+//       if (data.type === 'start') {
+//         sessionId = data.recordId;
+        
+//         sessions.set(sessionId, {
+//           currentStep: 'identity',
+//           candidateName: data.candidateName,
+//           ws: ws
+//         });
+
+//         conversationLogs.set(sessionId, {
+//           candidate: data.candidateName,
+//           messages: [],
+//           startTime: new Date()
+//         });
+
+//         documentKnowledge.set(sessionId, {
+//           identity: null,
+//           address: null,
+//           offer: null,
+//           verificationAttempts: {
+//             identity: 0,
+//             address: 0,
+//             offer: 0
+//           }
+//         });
+
+//         console.log(`✅ Session created for ${data.candidateName} (${sessionId})`);
+
+//         try {
+//           const realtimeWs = new WebSocket(
+//             'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01',
+//             {
+//               headers: {
+//                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+//                 'OpenAI-Beta': 'realtime=v1'
+//               }
+//             }
+//           );
+
+//           let connectionTimeout = setTimeout(() => {
+//             console.log('⏱️ Realtime API connection timeout - using fallback');
+//             useRealtimeAPI = false;
+//             realtimeWs.close();
+//             sendFallbackGreeting(ws, data.candidateName, sessionId);
+//           }, 5000);
+
+//           realtimeConnections.set(sessionId, realtimeWs);
+
+//           realtimeWs.on('open', () => {
+//             clearTimeout(connectionTimeout);
+//             console.log('🔊 Connected to OpenAI Realtime API');
+//             useRealtimeAPI = true;
+            
+//             const initialInstructions = buildInstructions(data.candidateName, 'identity', null);
+            
+//             realtimeWs.send(JSON.stringify({
+//               type: 'session.update',
+//               session: {
+//                 modalities: ['text', 'audio'],
+//                 instructions: initialInstructions,
+//                 voice: 'sage',
+//                 input_audio_format: 'pcm16',
+//                 output_audio_format: 'pcm16',
+//                 input_audio_transcription: {
+//                   model: 'whisper-1'
+//                 },
+//                 turn_detection: {
+//                   type: 'server_vad',
+//                   threshold: 0.5,
+//                   prefix_padding_ms: 300,
+//                   silence_duration_ms: 500,
+//                   create_response: true,
+//                   interrupt_response: true
+//                 },
+//                 temperature: 0.9
+//               }
+//             }));
+
+//             // 🔥 NEW: Send initial message from data.initialMessage if provided
+//             setTimeout(() => {
+//               const welcomeMessage = data.initialMessage || `Hello ${data.candidateName}.
+
+// Welcome to your new journey with your new role at this new place. I am your AI onboarding assistant, and I will help you get started with your first week here.
+
+// In this short session, I will do three things for you:
+// First, welcome you and give you a quick overview of your first week's schedule.
+// Second, explain the key meetings you will attend.
+// And third, guide you through your document verification.
+
+// Let me begin with your upcoming schedule and meetings for the first week.
+
+// On Day 1, you will have your Welcome and HR Orientation session. In this meeting, you will learn about the company, our values, and work culture, as well as understand important HR policies.
+
+// Next, you will have a Team and Manager Introduction session, where you'll meet your core team and get an overview of your role, the projects you'll work on, and how your work contributes to the team.
+
+// Towards the end of the week, you will have a First Week Check-in with HR and your manager. This is a short session to see how comfortable you are with the role and environment, and to clarify any questions.
+
+// All these meetings will be shared with you via calendar invites and email, including links, timings, and participants.
+
+// Now that you have an overview of your first week, let us complete your document verification. Please upload your identity proof when you're ready.`;
+
+//               realtimeWs.send(JSON.stringify({
+//                 type: 'conversation.item.create',
+//                 item: {
+//                   type: 'message',
+//                   role: 'user',
+//                   content: [{
+//                     type: 'input_text',
+//                     text: welcomeMessage
+//                   }]
+//                 }
+//               }));
+
+//               realtimeWs.send(JSON.stringify({
+//                 type: 'response.create',
+//                 response: {
+//                   modalities: ['text', 'audio']
+//                 }
+//               }));
+//             }, 300);
+//           });
+
+//           realtimeWs.on('message', (msg) => {
+//             const event = JSON.parse(msg.toString());
+
+//             if (event.type === 'response.audio.delta' && !isProcessingVerification) {
+//               ws.send(JSON.stringify({
+//                 type: 'audio_delta',
+//                 delta: event.delta
+//               }));
+//             }
+
+//             if (event.type === 'response.text.delta' && !isProcessingVerification) {
+//               ws.send(JSON.stringify({
+//                 type: 'agent_transcript_delta',
+//                 delta: event.delta
+//               }));
+//             }
+
+//             if (event.type === 'response.done') {
+//               const output = event.response.output || [];
+//               for (const item of output) {
+//                 if (item.type === 'message') {
+//                   for (const content of item.content || []) {
+//                     if (content.type === 'text' && content.text) {
+//                       console.log('🤖 Agent:', content.text);
+//                       logMessage(sessionId, 'agent', content.text);
+//                       if (!isProcessingVerification) {
+//                         ws.send(JSON.stringify({
+//                           type: 'agent_message',
+//                           content: content.text
+//                         }));
+//                       }
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+
+//             if (event.type === 'conversation.item.input_audio_transcription.completed') {
+//               console.log('👤 User:', event.transcript);
+//               logMessage(sessionId, 'user', event.transcript);
+              
+//               ws.send(JSON.stringify({
+//                 type: 'user_transcript',
+//                 content: event.transcript
+//               }));
+              
+//               if (!isProcessingVerification) {
+//                 const text = event.transcript.toLowerCase();
+//                 if (text.includes('upload') || text.includes('ready') || text.includes('yes') || text.includes('start')) {
+//                   ws.send(JSON.stringify({ type: 'trigger_upload' }));
+//                 }
+//               }
+//             }
+//           });
+
+//           realtimeWs.on('error', (error) => {
+//             console.error('❌ Realtime API error:', error.message);
+//             useRealtimeAPI = false;
+//             clearTimeout(connectionTimeout);
+//             sendFallbackGreeting(ws, data.candidateName, sessionId);
+//           });
+
+//           realtimeWs.on('close', () => {
+//             console.log('🔇 Realtime API disconnected');
+//             realtimeConnections.delete(sessionId);
+//           });
+
+//         } catch (realtimeError) {
+//           console.error('❌ Failed to connect to Realtime API:', realtimeError.message);
+//           useRealtimeAPI = false;
+//           sendFallbackGreeting(ws, data.candidateName, sessionId);
+//         }
+
+//       } else if (data.type === 'speak_message') {
+//         // 🔥 NEW: Handle speak_message for "Hmmmm"
+//         console.log('🗣️ Speaking message:', data.message);
+        
+//         const realtimeWs = realtimeConnections.get(sessionId || data.recordId);
+        
+//         if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN) {
+//           realtimeWs.send(JSON.stringify({
+//             type: 'conversation.item.create',
+//             item: {
+//               type: 'message',
+//               role: 'user',
+//               content: [{
+//                 type: 'input_text',
+//                 text: `Say exactly: "${data.message}"`
+//               }]
+//             }
+//           }));
+
+//           realtimeWs.send(JSON.stringify({
+//             type: 'response.create',
+//             response: {
+//               modalities: ['text', 'audio']
+//             }
+//           }));
+//         }
+
+//       } else if (data.type === 'document_uploading') {
+//         console.log('📤 Document upload detected - pausing voice agent');
+        
+//         isProcessingVerification = true;
+        
+//         const realtimeWs = realtimeConnections.get(sessionId || data.recordId);
+        
+//         if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN) {
+//           try {
+//             realtimeWs.send(JSON.stringify({
+//               type: 'response.cancel'
+//             }));
+//             console.log('🛑 Voice agent response cancelled - analyzing document...');
+            
+//             realtimeWs.send(JSON.stringify({
+//               type: 'input_audio_buffer.clear'
+//             }));
+//             console.log('🧹 Audio buffer cleared');
+            
+//           } catch (err) {
+//             console.log('⚠️ Could not cancel response:', err.message);
+//           }
+//         }
+        
+//         ws.send(JSON.stringify({
+//           type: 'agent_message',
+//           content: '🔍 Analyzing your document...'
+//         }));
+
+//       } else if (data.type === 'audio_input') {
+//         const realtimeWs = realtimeConnections.get(sessionId || data.recordId);
+        
+//         if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN && !isProcessingVerification) {
+//           realtimeWs.send(JSON.stringify({
+//             type: 'input_audio_buffer.append',
+//             audio: data.audio
+//           }));
+//         }
+
+//       } else if (data.type === 'verification_result') {
+//         isProcessingVerification = true;
+        
+//         const session = sessions.get(sessionId || data.recordId);
+//         if (!session) {
+//           console.error('❌ Session not found');
+//           isProcessingVerification = false;
+//           return;
+//         }
+
+//         const docKnowledge = documentKnowledge.get(sessionId || data.recordId);
+//         const realtimeWs = realtimeConnections.get(sessionId || data.recordId);
+        
+//         if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN) {
+//           try {
+//             realtimeWs.send(JSON.stringify({
+//               type: 'response.cancel'
+//             }));
+//             console.log('🛑 Cancelled ongoing response to prevent overlap');
+//           } catch (err) {
+//             console.log('⚠️ Could not cancel response:', err.message);
+//           }
+//         }
+        
+//         if (docKnowledge) {
+//           docKnowledge.verificationAttempts[session.currentStep]++;
+//         }
+
+//         if (docKnowledge && data.verificationData) {
+//           const attemptNumber = docKnowledge.verificationAttempts[session.currentStep];
+          
+//           if (!docKnowledge[`${session.currentStep}_attempts`]) {
+//             docKnowledge[`${session.currentStep}_attempts`] = [];
+//           }
+          
+//           docKnowledge[`${session.currentStep}_attempts`].push({
+//             attemptNumber,
+//             timestamp: new Date(),
+//             ...data.verificationData
+//           });
+
+//           console.log(`📝 Verification attempt #${attemptNumber} for ${session.currentStep}:`);
+//           console.log(JSON.stringify(data.verificationData, null, 2));
+//         }
+
+//         // 🔥 NAME MISMATCH CHECK
+//         if (data.verificationData.nameMatch === false) {
+//           console.log('❌ NAME VERIFICATION FAILED - Name mismatch detected');
+          
+//           if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN) {
+//             const updatedInstructions = buildInstructions(
+//               session.candidateName,
+//               session.currentStep,
+//               documentKnowledge.get(sessionId || data.recordId)
+//             );
+
+//             realtimeWs.send(JSON.stringify({
+//               type: 'session.update',
+//               session: { instructions: updatedInstructions }
+//             }));
+
+//             let nameMismatchPrompt = `🚨 CRITICAL: NAME VERIFICATION FAILED for ${session.currentStep} document.\n\n`;
+//             nameMismatchPrompt += `Expected name: "${session.candidateName}"\n`;
+//             nameMismatchPrompt += `Name found on document: "${data.verificationData.extractedName}"\n\n`;
+//             nameMismatchPrompt += `This is a CRITICAL security issue. The document does not belong to ${session.candidateName}.\n\n`;
+            
+//             if (data.verificationData.issues && data.verificationData.issues.length > 0) {
+//               nameMismatchPrompt += `Issues:\n`;
+//               data.verificationData.issues.forEach((issue, i) => {
+//                 nameMismatchPrompt += `${i + 1}. ${issue}\n`;
+//               });
+//             }
+
+//             nameMismatchPrompt += `\n\nEXPLAIN TO ${session.candidateName}: "I'm sorry, but I cannot verify this document. The name on the document does not match your registered name '${session.candidateName}'. Please upload a document that has YOUR name on it. This is required for security and compliance purposes."`;
+//             nameMismatchPrompt += `\n\n⚠️ DO NOT mention any confidence scores or percentages.`;
+
+//             await new Promise(resolve => setTimeout(resolve, 300));
+
+//             realtimeWs.send(JSON.stringify({
+//               type: 'conversation.item.create',
+//               item: {
+//                 type: 'message',
+//                 role: 'user',
+//                 content: [{ type: 'input_text', text: nameMismatchPrompt }]
+//               }
+//             }));
+
+//             realtimeWs.send(JSON.stringify({
+//               type: 'response.create',
+//               response: { modalities: ['text', 'audio'] }
+//             }));
+
+//             await new Promise(resolve => setTimeout(resolve, 2000));
+//           } else {
+//             const nameMismatchMessage = `I'm sorry, but the name on the ${session.currentStep} document does not match your registered name "${session.candidateName}". The document shows "${data.verificationData.extractedName}". Please upload a document with YOUR name on it.`;
+//             await sendFallbackResponse(ws, sessionId, nameMismatchMessage);
+//           }
+
+//           isProcessingVerification = false;
+//           return;
+//         }
+
+//         // 🔥 VERIFICATION FAILED (other reasons)
+//         if (!data.verificationData.isValid || data.verificationData.confidence < 0.7) {
+//           console.log('❌ Document verification FAILED');
+          
+//           if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN) {
+//             const updatedInstructions = buildInstructions(
+//               session.candidateName,
+//               session.currentStep,
+//               documentKnowledge.get(sessionId || data.recordId)
+//             );
+
+//             realtimeWs.send(JSON.stringify({
+//               type: 'session.update',
+//               session: {
+//                 instructions: updatedInstructions
+//               }
+//             }));
+
+//             let failurePrompt = `IMPORTANT: The ${session.currentStep} document verification just FAILED.\n\n`;
+            
+//             if (data.verificationData.issues && data.verificationData.issues.length > 0) {
+//               failurePrompt += `Issues found:\n`;
+//               data.verificationData.issues.forEach((issue, i) => {
+//                 failurePrompt += `${i + 1}. ${issue}\n`;
+//               });
+//             }
+            
+//             if (data.verificationData.aiAnalysis) {
+//               failurePrompt += `\n\nAI Analysis: ${data.verificationData.aiAnalysis}\n`;
+//             }
+
+//             failurePrompt += `\n\nPlease explain these issues to ${session.candidateName} in a friendly way and ask them to upload a CORRECT ${session.currentStep} document. Be specific about what was wrong.`;
+//             failurePrompt += `\n\n⚠️ DO NOT mention any confidence scores or percentages.`;
+
+//             await new Promise(resolve => setTimeout(resolve, 300));
+
+//             realtimeWs.send(JSON.stringify({
+//               type: 'conversation.item.create',
+//               item: {
+//                 type: 'message',
+//                 role: 'user',
+//                 content: [{ type: 'input_text', text: failurePrompt }]
+//               }
+//             }));
+
+//             realtimeWs.send(JSON.stringify({
+//               type: 'response.create',
+//               response: { modalities: ['text', 'audio'] }
+//             }));
+
+//             await new Promise(resolve => setTimeout(resolve, 2000));
+//           } else {
+//             const failureMessage = `I'm sorry, but the ${session.currentStep} document verification failed. ${data.verificationData.aiAnalysis} Please upload a clearer and correct document.`;
+//             await sendFallbackResponse(ws, sessionId, failureMessage);
+//           }
+
+//           isProcessingVerification = false;
+
+//         } else {
+//           // ✅ VERIFICATION SUCCESS
+//           console.log('✅ Document verification SUCCESSFUL');
+          
+//           if (docKnowledge) {
+//             docKnowledge[session.currentStep] = data.verificationData;
+//           }
+
+//           let nextStep, promptText;
+
+//           if (session.currentStep === 'identity') {
+//             nextStep = 'address';
+//             const identityInfo = data.verificationData.extractedData || {};
+            
+//             promptText = `Excellent! The identity document was successfully verified. `;
+            
+//             if (identityInfo.name) {
+//               promptText += `I confirmed the name as ${identityInfo.name}. `;
+//             }
+//             if (identityInfo.idNumber) {
+//               promptText += `ID number ${identityInfo.idNumber} was verified. `;
+//             }
+            
+//             promptText += `Congratulate ${session.candidateName} warmly and ask them to upload their Address Proof next, such as a utility bill, bank statement, or lease agreement.`;
+//             promptText += `\n\n⚠️ DO NOT mention any confidence scores or percentages.`;
+            
+//           } else if (session.currentStep === 'address') {
+//             nextStep = 'offer';
+//             const addressInfo = data.verificationData.extractedData || {};
+            
+//             promptText = `Great! The address proof was verified successfully. `;
+            
+//             if (addressInfo.address) {
+//               promptText += `I confirmed the address as ${addressInfo.address}. `;
+//             }
+//             if (addressInfo.name) {
+//               promptText += `Name on document: ${addressInfo.name}. `;
+//             }
+            
+//             promptText += `Congratulate ${session.candidateName} and ask them to upload their signed Offer Letter as the final step.`;
+//             promptText += `\n\n⚠️ DO NOT mention any confidence scores or percentages.`;
+            
+//           } else if (session.currentStep === 'offer') {
+//             nextStep = 'complete';
+//             const offerInfo = data.verificationData.extractedData || {};
+            
+//             promptText = `Perfect! All documents are verified! The offer letter was verified successfully. `;
+            
+//             if (offerInfo.position) {
+//               promptText += `Position: ${offerInfo.position}. `;
+//             }
+//             if (offerInfo.companyName) {
+//               promptText += `Company: ${offerInfo.companyName}. `;
+//             }
+            
+//             promptText += `Congratulate ${session.candidateName} warmly and calmly and tell them: "Our initial onboarding steps are now complete. Today, we have given you an overview of your first week's schedule and key meetings, and collected your Identity Proof for verification. As next steps, please check your email and calendar for your meeting invites and review any documents or links shared by HR. If at any point you are unsure about your schedule, you can return to this assistant and ask for your first-week schedule again, or you can refer to your onboarding email. Thank you for your time and I wish you a great time with your wonderful team."`;
+//             promptText += `\n\n⚠️ DO NOT mention any confidence scores or percentages.`;
+//           }
+
+//           if (nextStep) {
+//             session.currentStep = nextStep;
+
+//             if (useRealtimeAPI && realtimeWs?.readyState === WebSocket.OPEN) {
+//               const updatedInstructions = buildInstructions(
+//                 session.candidateName,
+//                 nextStep,
+//                 documentKnowledge.get(sessionId || data.recordId)
+//               );
+
+//               realtimeWs.send(JSON.stringify({
+//                 type: 'session.update',
+//                 session: {
+//                   instructions: updatedInstructions
+//                 }
+//               }));
+
+//               await new Promise(resolve => setTimeout(resolve, 300));
+
+//               realtimeWs.send(JSON.stringify({
+//                 type: 'conversation.item.create',
+//                 item: {
+//                   type: 'message',
+//                   role: 'user',
+//                   content: [{ type: 'input_text', text: promptText }]
+//                 }
+//               }));
+
+//               realtimeWs.send(JSON.stringify({
+//                 type: 'response.create',
+//                 response: { modalities: ['text', 'audio'] }
+//               }));
+
+//               await new Promise(resolve => setTimeout(resolve, 2000));
+//             } else {
+//               await sendFallbackResponse(ws, sessionId, promptText);
+//             }
+
+//             ws.send(JSON.stringify({ type: 'step_update', step: nextStep }));
+            
+//             if (nextStep === 'complete') {
+//               ws.send(JSON.stringify({ type: 'complete' }));
+//               printConversationLog(sessionId);
+//               printDocumentSummary(sessionId);
+//             }
+//           }
+
+//           isProcessingVerification = false;
+//         }
+//       }
+//     } catch (error) {
+//       console.error('❌ Error:', error);
+//       isProcessingVerification = false;
+//       ws.send(JSON.stringify({ 
+//         type: 'agent_message', 
+//         content: `Error: ${error.message}` 
+//       }));
+//     }
+//   });
+
+//   ws.on('close', () => {
+//     console.log('❌ Client disconnected');
+//     if (sessionId) {
+//       const realtimeWs = realtimeConnections.get(sessionId);
+//       if (realtimeWs) {
+//         realtimeWs.close();
+//         realtimeConnections.delete(sessionId);
+//       }
+//       printConversationLog(sessionId);
+//       printDocumentSummary(sessionId);
+//       sessions.delete(sessionId);
+//       documentKnowledge.delete(sessionId);
+//     }
+//   });
+// });
+
+// function buildInstructions(candidateName, currentStep, docKnowledge) {
+//   let instructions = `You are a friendly and professional document verification assistant helping ${candidateName} with their onboarding process. `;
+  
+//   instructions += `\n\n🔐 CRITICAL SECURITY RULE: ALL documents MUST have "${candidateName}" as the name. If any document shows a different name, it MUST be rejected immediately for security compliance.\n`;
+//   instructions += `\n\n⚠️ IMPORTANT: NEVER mention confidence scores, percentages, or verification accuracy numbers to the user. Keep responses natural and conversational.\n`;
+  
+//   if (docKnowledge) {
+//     instructions += '\n\n=== VERIFIED DOCUMENT INFORMATION ===\n';
+    
+//     if (docKnowledge.identity) {
+//       instructions += '\n📋 IDENTITY DOCUMENT (✅ VERIFIED):\n';
+//       const identity = docKnowledge.identity.extractedData || {};
+//       if (identity.name) instructions += `  • Full Name: ${identity.name}\n`;
+//       if (identity.idNumber) instructions += `  • ID Number: ${identity.idNumber}\n`;
+//       if (identity.dateOfBirth) instructions += `  • Date of Birth: ${identity.dateOfBirth}\n`;
+//       if (identity.expiryDate) instructions += `  • Expiry Date: ${identity.expiryDate}\n`;
+//     }
+    
+//     if (docKnowledge.address) {
+//       instructions += '\n🏠 ADDRESS DOCUMENT (✅ VERIFIED):\n';
+//       const address = docKnowledge.address.extractedData || {};
+//       if (address.name) instructions += `  • Name on Document: ${address.name}\n`;
+//       if (address.address) instructions += `  • Address: ${address.address}\n`;
+//       if (address.issueDate) instructions += `  • Issue Date: ${address.issueDate}\n`;
+//     }
+    
+//     if (docKnowledge.offer) {
+//       instructions += '\n💼 OFFER LETTER (✅ VERIFIED):\n';
+//       const offer = docKnowledge.offer.extractedData || {};
+//       if (offer.companyName) instructions += `  • Company: ${offer.companyName}\n`;
+//       if (offer.position) instructions += `  • Position: ${offer.position}\n`;
+//       if (offer.name) instructions += `  • Candidate Name: ${offer.name}\n`;
+//     }
+
+//     const attemptKeys = ['identity_attempts', 'address_attempts', 'offer_attempts'];
+//     let hasFailedAttempts = false;
+    
+//     attemptKeys.forEach(key => {
+//       if (docKnowledge[key] && docKnowledge[key].length > 0) {
+//         const failedAttempts = docKnowledge[key].filter(a => !a.isValid || a.confidence < 0.7);
+//         if (failedAttempts.length > 0) {
+//           hasFailedAttempts = true;
+//           const docType = key.replace('_attempts', '').toUpperCase();
+//           instructions += `\n⚠️ ${docType} - FAILED ATTEMPTS (${failedAttempts.length}):\n`;
+          
+//           failedAttempts.forEach((attempt, i) => {
+//             instructions += `  Attempt #${attempt.attemptNumber}:\n`;
+//             if (attempt.issues && attempt.issues.length > 0) {
+//               instructions += `    • Issues: ${attempt.issues.join(', ')}\n`;
+//             }
+//             if (attempt.aiAnalysis) {
+//               instructions += `    • Analysis: ${attempt.aiAnalysis}\n`;
+//             }
+//           });
+//         }
+//       }
+//     });
+    
+//     instructions += '\n=== END OF DOCUMENT INFORMATION ===\n\n';
+    
+//     if (hasFailedAttempts) {
+//       instructions += '⚠️ IMPORTANT: When discussing failed verification attempts, explain the specific issues clearly and guide the user on what needs to be corrected. DO NOT mention confidence scores.\n\n';
+//     }
+    
+//     instructions += 'IMPORTANT: You have access to all the verified information above. When the candidate asks questions, provide EXACT and SPECIFIC information from the data above. Never mention confidence scores or percentages.\n\n';
+//   }
+  
+//   instructions += `\n🎯 CURRENT STEP: ${currentStep.toUpperCase()}\n`;
+  
+//   const stepInstructions = {
+//     identity: '👤 Guide them to upload their Identity Proof (Driver\'s License, Passport, or Government ID). This must include a photo, full name, and ID number. The document should be clear, not blurry, and all text must be readable.',
+//     address: '🏠 Guide them to upload their Address Proof (Utility Bill, Bank Statement, or Lease Agreement). This must show their complete residential address with the candidate\'s name. The document should be recent (within 3 months) and clearly readable.',
+//     offer: '💼 Guide them to upload their signed Offer Letter from the company. This should include the position, company name, candidate name, and signature. All text must be clearly visible.',
+//     complete: '✅ All documents have been successfully verified! Congratulate them warmly on completing the preboarding process.'
+//   };
+  
+//   instructions += stepInstructions[currentStep] || '';
+//   instructions += '\n\n📝 CONVERSATION STYLE:\n';
+//   instructions += '• Be warm, friendly, use conversational fillers like hmm, okay, and encouraging\n';
+//   instructions += '• Keep responses concise (under 3 sentences) unless answering specific questions or explaining verification failures\n';
+//   instructions += '• 🔐 NAME MISMATCH: If a document has the wrong name, be firm but polite: "For security reasons, I cannot accept documents with a different name. Please upload a document that shows YOUR name."\n';
+//   instructions += '• When verification FAILS, be empathetic but clear about the issues - explain what was wrong (e.g., "The text was too blurry", "ID number was not visible")\n';
+//   instructions += '• ⚠️ NEVER mention confidence scores, percentages, or verification accuracy numbers\n';
+//   instructions += '• Guide users on how to take better photos or provide correct documents\n';
+//   instructions += '• When users ask about their verified information, provide complete and accurate details\n';
+//   instructions += '• Celebrate their progress after each successful verification without mentioning scores\n';
+  
+//   return instructions;
+// }
+
+// function logMessage(sessionId, speaker, text) {
+//   const log = conversationLogs.get(sessionId);
+//   if (log) {
+//     log.messages.push({
+//       speaker,
+//       text,
+//       timestamp: new Date()
+//     });
+//   }
+// }
+
+// function printConversationLog(sessionId) {
+//   const log = conversationLogs.get(sessionId);
+//   if (!log) return;
+
+//   console.log('\n========== CONVERSATION TRANSCRIPT ==========');
+//   console.log(`Candidate: ${log.candidate}`);
+//   console.log(`Started: ${log.startTime.toLocaleString()}`);
+//   console.log('=============================================\n');
+
+//   log.messages.forEach((msg, i) => {
+//     const speaker = msg.speaker === 'agent' ? '🤖 AGENT' : '👤 USER';
+//     console.log(`[${msg.timestamp.toLocaleTimeString()}] ${speaker}:`);
+//     console.log(`   ${msg.text}\n`);
+//   });
+
+//   console.log('=============================================\n');
+//   conversationLogs.delete(sessionId);
+// }
+
+// function printDocumentSummary(sessionId) {
+//   const docKnowledge = documentKnowledge.get(sessionId);
+//   if (!docKnowledge) return;
+
+//   console.log('\n========== DOCUMENT VERIFICATION SUMMARY ==========');
+  
+//   console.log('\n📊 VERIFICATION ATTEMPTS:');
+//   console.log(`  Identity: ${docKnowledge.verificationAttempts.identity} attempts`);
+//   console.log(`  Address: ${docKnowledge.verificationAttempts.address} attempts`);
+//   console.log(`  Offer: ${docKnowledge.verificationAttempts.offer} attempts`);
+  
+//   if (docKnowledge.identity) {
+//     console.log('\n📋 IDENTITY DOCUMENT (VERIFIED):');
+//     console.log(JSON.stringify(docKnowledge.identity, null, 2));
+//   }
+  
+//   if (docKnowledge.address) {
+//     console.log('\n🏠 ADDRESS DOCUMENT (VERIFIED):');
+//     console.log(JSON.stringify(docKnowledge.address, null, 2));
+//   }
+  
+//   if (docKnowledge.offer) {
+//     console.log('\n💼 OFFER LETTER (VERIFIED):');
+//     console.log(JSON.stringify(docKnowledge.offer, null, 2));
+//   }
+
+//   ['identity_attempts', 'address_attempts', 'offer_attempts'].forEach(key => {
+//     if (docKnowledge[key] && docKnowledge[key].length > 0) {
+//       const docType = key.replace('_attempts', '').toUpperCase();
+//       console.log(`\n⚠️ ${docType} - ALL ATTEMPTS (${docKnowledge[key].length}):`);
+//       docKnowledge[key].forEach(attempt => {
+//         console.log(`  Attempt #${attempt.attemptNumber} [${attempt.isValid ? '✅ PASSED' : '❌ FAILED'}]:`);
+//         console.log(`    Confidence: ${(attempt.confidence * 100).toFixed(0)}%`);
+//         if (attempt.issues) console.log(`    Issues: ${attempt.issues.join(', ')}`);
+//       });
+//     }
+//   });
+  
+//   console.log('\n===================================================\n');
+// }
+
+// async function sendFallbackGreeting(ws, candidateName, sessionId) {
+//   const greetingText = `Hello ${candidateName}! I'm your document verification assistant. Let's get started with your onboarding. Please upload your Identity Proof, such as a driver's license, passport, or government ID. You can also speak to me.`;
+  
+//   console.log('🤖 Agent (fallback):', greetingText);
+//   logMessage(sessionId, 'agent', greetingText);
+
+//   ws.send(JSON.stringify({
+//     type: 'agent_message',
+//     content: greetingText
+//   }));
+
+//   try {
+//     const mp3 = await openai.audio.speech.create({
+//       model: 'tts-1',
+//       voice: 'sage',
+//       input: greetingText,
+//     });
+
+//     const buffer = Buffer.from(await mp3.arrayBuffer());
+//     const base64Audio = buffer.toString('base64');
+
+//     ws.send(JSON.stringify({
+//       type: 'audio_complete',
+//       audio: base64Audio,
+//       format: 'mp3'
+//     }));
+//   } catch (err) {
+//     console.error('TTS error:', err.message);
+//   }
+// }
+
+// async function sendFallbackResponse(ws, sessionId, promptText) {
+//   try {
+//     const completion = await openai.chat.completions.create({
+//       model: 'gpt-4o-mini',
+//       messages: [
+//         { role: 'system', content: 'You are a friendly document verification assistant. Be concise and warm. Never mention confidence scores or percentages.' },
+//         { role: 'user', content: promptText }
+//       ],
+//       max_tokens: 150
+//     });
+
+//     const responseText = completion.choices[0].message.content;
+    
+//     console.log('🤖 Agent (fallback):', responseText);
+//     logMessage(sessionId, 'agent', responseText);
+
+//     ws.send(JSON.stringify({
+//       type: 'agent_message',
+//       content: responseText
+//     }));
+
+//     const mp3 = await openai.audio.speech.create({
+//       model: 'tts-1',
+//       voice: 'sage',
+//       input: responseText,
+//     });
+
+//     const buffer = Buffer.from(await mp3.arrayBuffer());
+//     const base64Audio = buffer.toString('base64');
+
+//     ws.send(JSON.stringify({
+//       type: 'audio_complete',
+//       audio: base64Audio,
+//       format: 'mp3'
+//     }));
+//   } catch (err) {
+//     console.error('Fallback response error:', err.message);
+//   }
+// }
+
+// console.log(`🚀 WebSocket server running on ws://localhost:${PORT}`);
+// console.log('💡 Waiting for connections...');
+
 
